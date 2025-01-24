@@ -5,32 +5,40 @@ import express from "express";
 import http from "http";
 import cors from "cors";
 import bodyParser from "body-parser";
+import { find } from "lodash-es";
 
-const bus_route_stop = [
-  {
-    route: "1",
-    bound: "O",
-    service_type: "1",
-    seq: "1",
-    stop: "18492910339410B1",
-  },
-];
+var station_info = [];
 
-const bus_stop = [
-  {
-    stop: "18492910339410B1",
-    name_en: "CHUK YUEN ESTATE BUS TERMINUS",
-    name_tc: "竹園邨總站",
-    name_sc: "竹园邨总站",
-    lat: "22.345415",
-    long: "114.192640",
-  },
-];
+async function fetchArrival(id, direction,serviceType) {
+  return await fetch(
+    `https://data.etabus.gov.hk/v1/transport/kmb/route/${id}/${direction}/${serviceType}`
+  )
+    .then(function (response) {
+      return response.json();
+    })
+    .then(function (responseJson) {
+      return responseJson;
+    });
+}
 
-// async function handleData() {
-//     let {data, generated_timestamp, version, type} = await tryFetch();
-//     return data;
-//   }
+async function handleRouteInfo(id, serviceType) {
+  return await fetch(
+    `https://data.etabus.gov.hk/v1/transport/kmb/route-eta/${id}/${serviceType}`
+  )
+    .then(function (response) {
+      return response.json();
+    })
+    .then(function (responseJson) {
+      return responseJson;
+    });
+}
+
+async function saveStation() {
+  let { data, generated_timestamp, version, type } = await fetchStations();
+  console.log(data);
+  station_info = data;
+}
+
 async function fetchStation(id) {
   return await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/stop/${id}`)
     .then(function (response) {
@@ -67,9 +75,10 @@ async function fetchRoutes() {
 // The GraphQL schema
 const typeDefs = `#graphql
   type Query {
-    hello: String,
-    route: [Routes],
-    station: [Stations]
+    routes: [Routes],
+    stations: [Stations],
+    station(stop: String!): Stations,
+    route(routeId: String!, serviceType: String!): Route
   }
 
   type Routes {
@@ -88,30 +97,90 @@ const typeDefs = `#graphql
    lat: String!
    long: String!
   }
+
+  type Route {
+    route: String!
+    bound: String!
+    service_type: String!
+    seq: String!
+    stop: Stations
+    arrival: [Arrivals]
+  }
+
+  type Arrivals {
+    co: String!
+    route: String!
+    dir: String!
+    service_type: Int!
+    seq: Int!
+    dest_tc: String!
+    dest_sc:  String!
+    dest_en:  String!
+    eta_seq:  Int!
+    eta:  String!
+    rmk_tc:  String!
+    rmk_sc:  String!
+    rmk_en:  String!
+    data_timestamp:  String!
+  }
 `;
 
 const resolvers = {
   Query: {
-    hello: () => "world",
-    route: async () => {
-    //   let { data, generated_timestamp, version, type } = await fetchRoutes();
-      return bus_route_stop;
+    routes: async () => {
+      let { data, generated_timestamp, version, type } = await fetchRoutes();
+
+      return data;
     },
-    station: async () => {
-    //   let { data, generated_timestamp, version, type } = await fetchStations();
-      return bus_stop;
+    stations: async () => {
+      if (station_info.length == 0) saveStation();
+
+      return station_info;
+    },
+    station: async (parent, { stop }) => {
+      let { data, generated_timestamp, version, type } = await fetchStation(
+        stop
+      );
+
+      return data;
+    },
+    route: async (parent, { routeId, serviceType }) => {
+      let { data, generated_timestamp, version, type } = await handleRouteInfo(
+        routeId,
+        serviceType
+      );
+
+      return data;
     },
   },
 
   Routes: {
-    stop: async (route) => {
-    //   let { data, generated_timestamp, version, type } = await fetchStation(
-    //     route.stop
-    //   );
-    return  bus_stop.find((v) =>v.stop == route.stop)
-     
+    stop: (route) => {
+      // if (station_info.length == 0) {
+      //   saveStation();
+      // }
+
+      return find(station_info, function (v) {
+        return v.stop == route.stop;
+      });
     },
   },
+  Route: {
+    stop: (route) => {
+      // if (station_info.length == 0) {
+      //   saveStation();
+      // }
+
+      return find(station_info, function (v) {
+        return v.stop == route.stop;
+      });
+    },
+    arrival:async (route) => {
+      let direction =  route.bound == "O" ? "outbound" : "inbound";
+      let { data, generated_timestamp, version, type } = await fetchArrival(route.route, direction, route.service_type);
+      return data;
+    },
+  }
 };
 
 const app = express();
@@ -128,4 +197,5 @@ await server.start();
 app.use(cors(), bodyParser.json(), expressMiddleware(server));
 
 await new Promise((resolve) => httpServer.listen({ port: 4000 }, resolve));
+saveStation();
 console.log(`🚀 Server ready at http://localhost:4000`);

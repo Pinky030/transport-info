@@ -9,21 +9,21 @@ import { find } from "lodash-es";
 
 var station_info = [];
 
-async function fetchArrival(id, direction,serviceType) {
-  return await fetch(
-    `https://data.etabus.gov.hk/v1/transport/kmb/route/${id}/${direction}/${serviceType}`
-  )
-    .then(function (response) {
-      return response.json();
-    })
-    .then(function (responseJson) {
-      return responseJson;
-    });
-}
+// async function fetchArrival(stopId, routeId, serviceType) {
+//   return await fetch(
+//     `https://data.etabus.gov.hk/v1/transport/kmb/eta/${stopId}/${routeId}/${serviceType}`
+//   )
+//     .then(function (response) {
+//       return response.json();
+//     })
+//     .then(function (responseJson) {
+//       return responseJson;
+//     });
+// }
 
-async function handleRouteInfo(id, serviceType) {
+async function handleRouteInfo(routeId, direction,serviceType) {
   return await fetch(
-    `https://data.etabus.gov.hk/v1/transport/kmb/route-eta/${id}/${serviceType}`
+    `https://data.etabus.gov.hk/v1/transport/kmb/route/${routeId}/${direction}/${serviceType}`
   )
     .then(function (response) {
       return response.json();
@@ -78,8 +78,8 @@ const typeDefs = `#graphql
     routes: [Routes],
     stations: [Stations],
     station(stop: String!): Stations,
-    route(routeId: String!, serviceType: String!): Route
-  }
+    route(routeId: String!, direction: String!, serviceType: String!): Route
+  }  
 
   type Routes {
     route: String!
@@ -102,27 +102,14 @@ const typeDefs = `#graphql
     route: String!
     bound: String!
     service_type: String!
-    seq: String!
-    stop: Stations
-    arrival: [Arrivals]
+    orig_en: String!
+    orig_tc: String!
+    orig_sc: String!
+    dest_en: String!
+    dest_tc: String!
+    dest_sc: String!
   }
 
-  type Arrivals {
-    co: String!
-    route: String!
-    dir: String!
-    service_type: Int!
-    seq: Int!
-    dest_tc: String!
-    dest_sc:  String!
-    dest_en:  String!
-    eta_seq:  Int!
-    eta:  String!
-    rmk_tc:  String!
-    rmk_sc:  String!
-    rmk_en:  String!
-    data_timestamp:  String!
-  }
 `;
 
 const resolvers = {
@@ -144,9 +131,11 @@ const resolvers = {
 
       return data;
     },
-    route: async (parent, { routeId, serviceType }) => {
+    route: async (parent, { routeId, serviceType, direction }, context) => {
+    
       let { data, generated_timestamp, version, type } = await handleRouteInfo(
         routeId,
+        direction,
         serviceType
       );
 
@@ -159,28 +148,11 @@ const resolvers = {
       // if (station_info.length == 0) {
       //   saveStation();
       // }
-
       return find(station_info, function (v) {
         return v.stop == route.stop;
       });
     },
   },
-  Route: {
-    stop: (route) => {
-      // if (station_info.length == 0) {
-      //   saveStation();
-      // }
-
-      return find(station_info, function (v) {
-        return v.stop == route.stop;
-      });
-    },
-    arrival:async (route) => {
-      let direction =  route.bound == "O" ? "outbound" : "inbound";
-      let { data, generated_timestamp, version, type } = await fetchArrival(route.route, direction, route.service_type);
-      return data;
-    },
-  }
 };
 
 const app = express();

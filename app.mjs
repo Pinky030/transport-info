@@ -9,19 +9,19 @@ import { find } from "lodash-es";
 
 var station_info = [];
 
-// async function fetchArrival(stopId, routeId, serviceType) {
-//   return await fetch(
-//     `https://data.etabus.gov.hk/v1/transport/kmb/eta/${stopId}/${routeId}/${serviceType}`
-//   )
-//     .then(function (response) {
-//       return response.json();
-//     })
-//     .then(function (responseJson) {
-//       return responseJson;
-//     });
-// }
+async function fetchArrivals(routeId, serviceType) {
+  return await fetch(
+    `https://data.etabus.gov.hk/v1/transport/kmb/route-eta/${routeId}/${serviceType}`
+  )
+    .then(function (response) {
+      return response.json();
+    })
+    .then(function (responseJson) {
+      return responseJson;
+    });
+}
 
-async function handleRouteInfo(routeId, direction,serviceType) {
+async function handleRouteInfo(routeId, direction, serviceType) {
   return await fetch(
     `https://data.etabus.gov.hk/v1/transport/kmb/route/${routeId}/${direction}/${serviceType}`
   )
@@ -108,6 +108,24 @@ const typeDefs = `#graphql
     dest_en: String!
     dest_tc: String!
     dest_sc: String!
+    arrivals: [Arrivals]
+  }
+
+  type Arrivals {
+    co: String!
+    route: String!
+    dir: String!
+    service_type: Int!
+    seq: Int!
+    dest_tc: String!
+    dest_sc: String!
+    dest_en: String!
+    eta_seq: Int!
+    eta: String!
+    rmk_tc: String!
+    rmk_sc: String!
+    rmk_en: String!
+    data_timestamp: String!
   }
 
 `;
@@ -132,7 +150,6 @@ const resolvers = {
       return data;
     },
     route: async (parent, { routeId, serviceType, direction }, context) => {
-    
       let { data, generated_timestamp, version, type } = await handleRouteInfo(
         routeId,
         direction,
@@ -151,6 +168,17 @@ const resolvers = {
       return find(station_info, function (v) {
         return v.stop == route.stop;
       });
+    },
+  },
+
+  Route: {
+    arrivals: async (route) => {
+      const { route :routeId, service_type } = route;
+      let { data, generated_timestamp, version, type } = await fetchArrivals(
+        routeId,
+        service_type
+      );
+      return data;
     },
   },
 };

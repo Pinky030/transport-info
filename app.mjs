@@ -1,16 +1,14 @@
-import { ApolloServer } from "@apollo/server";
+import typeDefs from "./schema.mjs";
+import resolvers from "./resolvers.mjs";
 import { expressMiddleware } from "@apollo/server/express4";
-import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
 import express from "express";
 import http from "http";
 import cors from "cors";
 import bodyParser from "body-parser";
-// import { find } from "lodash-es";
-import typeDefs from "./schema.mjs";
-import resolvers from "./resolvers.mjs";
+import { ApolloServer } from "@apollo/server";
+import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
 import { saveStation } from "./lib.mjs";
 import { LRUCache } from 'lru-cache'
-
 
 let isShuttingDown = false;
 
@@ -41,12 +39,10 @@ const options = {
 };
 
 export const cache = new LRUCache(options);
-saveStation();
 
 const app = express();
 const httpServer = http.createServer(app);
 
-// Set up Apollo Server
 const server = new ApolloServer({
   typeDefs,
   resolvers,
@@ -56,6 +52,8 @@ const server = new ApolloServer({
 await server.start();
 
 app.use(cors(), bodyParser.json(),expressMiddleware(server));
+
+saveStation();
 
 await new Promise((resolve) => httpServer.listen({ port: 4000 }, resolve));
 

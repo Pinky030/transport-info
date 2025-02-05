@@ -8,37 +8,7 @@ import bodyParser from "body-parser";
 import { ApolloServer } from "@apollo/server";
 import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
 import { saveStation } from "./lib.mjs";
-import { LRUCache } from 'lru-cache'
 
-let isShuttingDown = false;
-
-process.on("SIGINT", () => {
-  isShuttingDown = true;
-  process.exit(0);
-});
-
-process.on("SIGTERM", () => {
-  isShuttingDown = true;
-  process.exit(0);
-});
-
-const options = {
-  maxSize: 10000,
-  sizeCalculation: (value, key) => {
-    return 1;
-  },
-  dispose: (value, key) => {
-    if (!isShuttingDown) saveStation();
-  },
-  ttl:  1000 * 60 * 60 * 24,
-  allowStale: false,
-
-  updateAgeOnGet: false,
-  updateAgeOnHas: false,
-  // fetchMethod: async (key, staleValue, { options, signal, context }) => {},
-};
-
-export const cache = new LRUCache(options);
 
 const app = express();
 const httpServer = http.createServer(app);

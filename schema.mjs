@@ -2,7 +2,7 @@ const typeDefs = `#graphql
   type Query {
     routes: [Routes],
     stations: [Stations],
-    station(stop: String!): Stations,
+    station(stop: String!): Station,
     route(routeId: String!, direction: String!, serviceType: String!): Route
   }  
 
@@ -21,6 +21,16 @@ const typeDefs = `#graphql
    name_sc: String!
    lat: String!
    long: String!
+  }
+
+  type Station {
+   stop: String! 
+   name_en: String!
+   name_tc: String!
+   name_sc: String!
+   lat: String!
+   long: String!
+   arrivals: [Arrivals]
   }
 
   type Route {

@@ -1,4 +1,4 @@
-import { cache } from "./app.mjs";
+import cache from "./cache.mjs";
 
 async function fetchStations() {
   return await fetch("https://data.etabus.gov.hk/v1/transport/kmb/stop")
@@ -15,7 +15,7 @@ async function saveStation() {
   data.forEach((v) => cache.set(v.stop, v));
 }
 
-async function fetchArrivals(routeId, serviceType) {
+async function fetchArrivalsByRoute(routeId, serviceType) {
   return await fetch(
     `https://data.etabus.gov.hk/v1/transport/kmb/route-eta/${routeId}/${serviceType}`
   )
@@ -26,6 +26,19 @@ async function fetchArrivals(routeId, serviceType) {
       return responseJson;
     });
 }
+
+async function fetchArrivalsByStation(stationId) {
+  return await fetch(
+    `https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/${stationId}`
+  )
+    .then(function (response) {
+      return response.json();
+    })
+    .then(function (responseJson) {
+      return responseJson;
+    });
+}
+
 
 async function handleRouteInfo(routeId, direction, serviceType) {
   return await fetch(
@@ -61,7 +74,8 @@ async function fetchRoutes() {
 export {
   fetchStations,
   saveStation,
-  fetchArrivals,
+  fetchArrivalsByRoute,
+  fetchArrivalsByStation,
   handleRouteInfo,
   fetchStation,
   fetchRoutes,

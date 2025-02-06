@@ -7,7 +7,7 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import { ApolloServer } from "@apollo/server";
 import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
-import { saveStation } from "./lib.mjs";
+import { saveStation, saveRoute } from "./lib.mjs";
 
 
 const app = express();
@@ -24,6 +24,7 @@ await server.start();
 app.use(cors(), bodyParser.json(),expressMiddleware(server));
 
 saveStation();
+saveRoute();
 
 await new Promise((resolve) => httpServer.listen({ port: 4000 }, resolve));
 

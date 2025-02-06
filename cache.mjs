@@ -1,4 +1,4 @@
-import { LRUCache } from 'lru-cache'
+import { LRUCache } from "lru-cache";
 
 let isShuttingDown = false;
 
@@ -13,14 +13,16 @@ process.on("SIGTERM", () => {
 });
 
 const options = {
-  maxSize: 10000,
+  maxSize: 20000,
   sizeCalculation: (value, key) => {
+    if (Array.isArray(value)) return value.length;
+    
     return 1;
   },
   dispose: (value, key) => {
     if (!isShuttingDown) saveStation();
   },
-  ttl:  1000 * 60 * 60 * 24,
+  ttl: 1000 * 60 * 60 * 24,
   allowStale: false,
 
   updateAgeOnGet: false,

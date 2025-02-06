@@ -48,7 +48,7 @@ const typeDefs = `#graphql
 
   type Arrivals {
     co: String!
-    route: String!
+    route: Routes
     dir: String!
     service_type: Int!
     seq: Int!

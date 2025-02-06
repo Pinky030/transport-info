@@ -4,15 +4,19 @@ import {
   fetchStation,
   handleRouteInfo,
   fetchArrivalsByRoute,
-  fetchArrivalsByStation
+  fetchArrivalsByStation,
 } from "./lib.mjs";
 import cache from "./cache.mjs";
-import { map } from "lodash-es";
+import { map, find } from "lodash-es";
 import dayjs from "dayjs";
 
 const resolvers = {
   Query: {
     routes: async () => {
+      if (cache !== undefined && cache.get("routesInfo").length>0) {
+        return cache.get("routesInfo");
+      }
+
       let { data, generated_timestamp, version, type } = await fetchRoutes();
 
       return data;
@@ -79,6 +83,20 @@ const resolvers = {
         };
       });
       return result;
+    },
+  },
+
+  Arrivals: {
+    route: (info) => {
+      // debugger
+      let routes = cache !== undefined ? cache.get("routesInfo") : {};
+      return find(routes, function (o) {
+        return (
+          o.route == info.route &&
+          o.bound == info.dir &&
+          o.service_type == info.service_type
+        );
+      });
     },
   },
 };

@@ -1,5 +1,15 @@
 import cache from "./cache.mjs";
 
+async function fetchRoutes() {
+  return await fetch("https://data.etabus.gov.hk/v1/transport/kmb/route-stop")
+    .then(function (response) {
+      return response.json();
+    })
+    .then(function (responseJson) {
+      return responseJson;
+    });
+}
+
 async function fetchStations() {
   return await fetch("https://data.etabus.gov.hk/v1/transport/kmb/stop")
     .then(function (response) {
@@ -8,6 +18,11 @@ async function fetchStations() {
     .then(function (responseJson) {
       return responseJson;
     });
+}
+
+async function saveRoute() {
+  let { data, generated_timestamp, version, type } = await fetchRoutes();
+  cache.set("routesInfo", data);
 }
 
 async function saveStation() {
@@ -39,7 +54,6 @@ async function fetchArrivalsByStation(stationId) {
     });
 }
 
-
 async function handleRouteInfo(routeId, direction, serviceType) {
   return await fetch(
     `https://data.etabus.gov.hk/v1/transport/kmb/route/${routeId}/${direction}/${serviceType}`
@@ -62,16 +76,8 @@ async function fetchStation(id) {
     });
 }
 
-async function fetchRoutes() {
-  return await fetch("https://data.etabus.gov.hk/v1/transport/kmb/route-stop")
-    .then(function (response) {
-      return response.json();
-    })
-    .then(function (responseJson) {
-      return responseJson;
-    });
-}
 export {
+  saveRoute,
   fetchStations,
   saveStation,
   fetchArrivalsByRoute,

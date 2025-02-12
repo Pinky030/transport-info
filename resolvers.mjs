@@ -20,10 +20,13 @@ import DataLoader from "dataloader";
 // });
 
 const arrivalsLoader = new DataLoader(async (keys) => {
-  const results = await Promise.all(
-    keys.map((stop) => fetchArrivalsByStations(stop))
-  );
+  const promises = [];
 
+  for (let stop of keys) {
+    promises.push(fetchArrivalsByStations(stop));
+  }
+
+  const results = await Promise.all(promises);
   return results;
 });
 

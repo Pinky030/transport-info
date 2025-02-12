@@ -11,32 +11,39 @@ import { map, find } from "lodash-es";
 import dayjs from "dayjs";
 import DataLoader from "dataloader";
 
+// const arrivalsLoader = new DataLoader(async (keys) => {
+//   const results = await Promise.all(
+//     keys.map((v) => fetchArrivalsByStations(v))
+//   );
+//   console.log(results);
+//   return keys.map((key) => results[key]);
+// });
+
 const arrivalsLoader = new DataLoader(async (keys) => {
-  debugger;
-  // const results = await fetchArrivalsByStations(keys);
   const results = await Promise.all(
-    keys.map((v) => fetchArrivalsByStations(v))
+    keys.map((stop) => fetchArrivalsByStations(stop))
   );
-  console.log(results);
-  return keys.map((key) => results[key]);
+
+  return results;
 });
 
 async function fetchArrivalsByStations(stop) {
-  let { data, generated_timestamp, version, type } = await fetch(
-       `https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/${stop}`
-  )
-    .then(function (response) {
-      return response.json();
-    })
-    .then(function (responseJson) {
-      return responseJson;
-    })
-    .catch((error) => {
-      console.log(error)
-    });
+  try {
+    const response = await fetch(
+      `https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/${stop}`,
+      { signal: AbortSignal.timeout(5000) }
+    );
 
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
 
-  return data;
+    const { data } = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching arrivals:', error);
+    return null; // Return null or an empty array if there's an error
+  }
   // let result = map(data, function (v) {
   //   return {
   //     ...v,

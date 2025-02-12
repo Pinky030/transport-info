@@ -9,11 +9,51 @@ import {
 import cache from "./cache.mjs";
 import { map, find } from "lodash-es";
 import dayjs from "dayjs";
+import DataLoader from "dataloader";
+
+const arrivalsLoader = new DataLoader(async (keys) => {
+  debugger;
+  // const results = await fetchArrivalsByStations(keys);
+  const results = await Promise.all(
+    keys.map((v) => fetchArrivalsByStations(v))
+  );
+  console.log(results);
+  return keys.map((key) => results[key]);
+});
+
+async function fetchArrivalsByStations(stop) {
+  let { data, generated_timestamp, version, type } = await fetch(
+       `https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/${stop}`
+  )
+    .then(function (response) {
+      return response.json();
+    })
+    .then(function (responseJson) {
+      return responseJson;
+    })
+    .catch((error) => {
+      console.log(error)
+    });
+
+
+  return data;
+  // let result = map(data, function (v) {
+  //   return {
+  //     ...v,
+  //     data_timestamp: dayjs(new Date(v.data_timestamp)).format(
+  //       "YYYY-MM-DD HH:mm:ss"
+  //     ),
+  //     eta: dayjs(new Date(v.eta)).format("YYYY-MM-DD HH:mm:ss"),
+  //   };
+  // });
+  // debugger
+  // return result;
+}
 
 const resolvers = {
   Query: {
     routes: async () => {
-      if (cache !== undefined && cache.get("routesInfo").length>0) {
+      if (cache !== undefined && cache.get("routesInfo").length > 0) {
         return cache.get("routesInfo");
       }
 
@@ -65,6 +105,28 @@ const resolvers = {
         };
       });
       return result;
+    },
+  },
+
+  Stations: {
+    arrivals: async (station) => {
+      const { stop } = station;
+
+      return arrivalsLoader.load(stop);
+      // const { stop } = station;
+      // let { data, generated_timestamp, version, type } =
+      //   await fetchArrivalsByStation(stop);
+
+      // let result = map(data, function (v) {
+      //   return {
+      //     ...v,
+      //     data_timestamp: dayjs(new Date(v.data_timestamp)).format(
+      //       "YYYY-MM-DD HH:mm:ss"
+      //     ),
+      //     eta: dayjs(new Date(v.eta)).format("YYYY-MM-DD HH:mm:ss"),
+      //   };
+      // });
+      // return result;
     },
   },
 

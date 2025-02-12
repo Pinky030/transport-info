@@ -21,6 +21,7 @@ const typeDefs = `#graphql
    name_sc: String!
    lat: String!
    long: String!
+   arrivals: [Arrivals]
   }
 
   type Station {

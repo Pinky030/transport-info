@@ -8,16 +8,8 @@ import {
 } from "./lib.mjs";
 import cache from "./cache.mjs";
 import { map, find } from "lodash-es";
-import dayjs from "dayjs";
 import DataLoader from "dataloader";
-
-// const arrivalsLoader = new DataLoader(async (keys) => {
-//   const results = await Promise.all(
-//     keys.map((v) => fetchArrivalsByStations(v))
-//   );
-//   console.log(results);
-//   return keys.map((key) => results[key]);
-// });
+import { parsedDate } from "./utils.mjs";
 
 const arrivalsLoader = new DataLoader(async (keys) => {
   const promises = [];
@@ -44,7 +36,7 @@ async function fetchArrivalsByStations(stop) {
     const { data } = await response.json();
     return data;
   } catch (error) {
-    console.error('Error fetching arrivals:', error);
+    console.error("Error fetching arrivals:", error);
     return null; // Return null or an empty array if there's an error
   }
   // let result = map(data, function (v) {
@@ -108,10 +100,8 @@ const resolvers = {
       let result = map(data, function (v) {
         return {
           ...v,
-          data_timestamp: dayjs(new Date(v.data_timestamp)).format(
-            "YYYY-MM-DD HH:mm:ss"
-          ),
-          eta: dayjs(new Date(v.eta)).format("YYYY-MM-DD HH:mm:ss"),
+          data_timestamp: parsedDate(v.data_timestamp),
+          eta: parsedDate(v.eta),
         };
       });
       return result;
@@ -123,20 +113,6 @@ const resolvers = {
       const { stop } = station;
 
       return arrivalsLoader.load(stop);
-      // const { stop } = station;
-      // let { data, generated_timestamp, version, type } =
-      //   await fetchArrivalsByStation(stop);
-
-      // let result = map(data, function (v) {
-      //   return {
-      //     ...v,
-      //     data_timestamp: dayjs(new Date(v.data_timestamp)).format(
-      //       "YYYY-MM-DD HH:mm:ss"
-      //     ),
-      //     eta: dayjs(new Date(v.eta)).format("YYYY-MM-DD HH:mm:ss"),
-      //   };
-      // });
-      // return result;
     },
   },
 
@@ -148,10 +124,8 @@ const resolvers = {
       let result = map(data, function (v) {
         return {
           ...v,
-          data_timestamp: dayjs(new Date(v.data_timestamp)).format(
-            "YYYY-MM-DD HH:mm:ss"
-          ),
-          eta: dayjs(new Date(v.eta)).format("YYYY-MM-DD HH:mm:ss"),
+          data_timestamp: parsedDate(v.data_timestamp),
+          eta: parsedDate(v.eta),
         };
       });
       return result;
@@ -160,7 +134,6 @@ const resolvers = {
 
   Arrivals: {
     route: (info) => {
-      // debugger
       let routes = cache !== undefined ? cache.get("routesInfo") : {};
       return find(routes, function (o) {
         return (

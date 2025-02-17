@@ -43,15 +43,16 @@ async function fetchArrivalsByRoute(routeId, serviceType) {
 }
 
 async function fetchArrivalsByStation(stationId) {
-  return await fetch(
-    `https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/${stationId}`
-  )
-    .then(function (response) {
-      return response.json();
-    })
-    .then(function (responseJson) {
-      return responseJson;
-    });
+  try {
+    const response = await fetch(
+      `https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/${stationId}`
+    );
+    const responseJson = await response.json();
+    return responseJson;
+  } catch (error) {
+    console.error("Error fetching arrivals:", error);
+    throw error; 
+  }
 }
 
 async function handleRouteInfo(routeId, direction, serviceType) {

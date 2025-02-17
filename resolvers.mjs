@@ -8,12 +8,54 @@ import {
 } from "./lib.mjs";
 import cache from "./cache.mjs";
 import { map, find } from "lodash-es";
-import dayjs from "dayjs";
+import DataLoader from "dataloader";
+import { parsedDate } from "./utils.mjs";
+
+const arrivalsLoader = new DataLoader(async (keys) => {
+  const promises = [];
+
+  for (let stop of keys) {
+    promises.push(fetchArrivalsByStations(stop));
+  }
+
+  const results = await Promise.all(promises);
+  return results;
+});
+
+async function fetchArrivalsByStations(stop) {
+  try {
+    const response = await fetch(
+      `https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/${stop}`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const { data } = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error fetching arrivals:", error);
+    return null; // Return null or an empty array if there's an error
+  }
+  // let result = map(data, function (v) {
+  //   return {
+  //     ...v,
+  //     data_timestamp: dayjs(new Date(v.data_timestamp)).format(
+  //       "YYYY-MM-DD HH:mm:ss"
+  //     ),
+  //     eta: dayjs(new Date(v.eta)).format("YYYY-MM-DD HH:mm:ss"),
+  //   };
+  // });
+  // debugger
+  // return result;
+}
 
 const resolvers = {
   Query: {
     routes: async () => {
-      if (cache !== undefined && cache.get("routesInfo").length>0) {
+      if (cache !== undefined && cache.get("routesInfo").length > 0) {
         return cache.get("routesInfo");
       }
 
@@ -58,13 +100,19 @@ const resolvers = {
       let result = map(data, function (v) {
         return {
           ...v,
-          data_timestamp: dayjs(new Date(v.data_timestamp)).format(
-            "YYYY-MM-DD HH:mm:ss"
-          ),
-          eta: dayjs(new Date(v.eta)).format("YYYY-MM-DD HH:mm:ss"),
+          data_timestamp: parsedDate(v.data_timestamp),
+          eta: parsedDate(v.eta),
         };
       });
       return result;
+    },
+  },
+
+  Stations: {
+    arrivals: async (station) => {
+      const { stop } = station;
+
+      return arrivalsLoader.load(stop);
     },
   },
 
@@ -76,10 +124,8 @@ const resolvers = {
       let result = map(data, function (v) {
         return {
           ...v,
-          data_timestamp: dayjs(new Date(v.data_timestamp)).format(
-            "YYYY-MM-DD HH:mm:ss"
-          ),
-          eta: dayjs(new Date(v.eta)).format("YYYY-MM-DD HH:mm:ss"),
+          data_timestamp: parsedDate(v.data_timestamp),
+          eta: parsedDate(v.eta),
         };
       });
       return result;
@@ -88,7 +134,6 @@ const resolvers = {
 
   Arrivals: {
     route: (info) => {
-      // debugger
       let routes = cache !== undefined ? cache.get("routesInfo") : {};
       return find(routes, function (o) {
         return (
